@@ -68,9 +68,11 @@ export class AgentPaySDK {
         const validAfter = 0;
         const validBefore = Math.floor(Date.now() / 1000) + 3600;
 
+        // The EIP-3009 authorization must be for the actual USDC recipient
+        // (the agent worker address), not the AgentProtocol contract address.
         const paymentValue = {
             from: userWallet.address,
-            to: contractAddress,
+            to: agentWallet.address,
             value: amount,
             validAfter,
             validBefore,
@@ -79,6 +81,11 @@ export class AgentPaySDK {
 
         const paymentSig = await userWallet.signTypedData(USDC_CONFIG, EIP3009_TYPES, paymentValue);
         const split = ethers.Signature.from(paymentSig);
+
+
+        console.log("Debug: EIP-3009 domain:", USDC_CONFIG);
+        console.log("Debug: paymentValue:", paymentValue);
+        console.log("Debug: paymentSig:", `${paymentSig.substring(0, 10)}...`);
 
         const score = 100;
         const repHash = ethers.solidityPackedKeccak256(
@@ -144,3 +151,5 @@ export class AgentPaySDK {
         }
     }
 }
+
+export * from "./middleware.js";

@@ -54,6 +54,8 @@ contract AgentProtocol is ERC721URIStorage, Ownable {
         bytes32 paymentNonce  // We use the filehash slot for the payment nonce
     );
 
+    event AgentRegistered(uint256 indexed agentId, address indexed creator, string metadataURI);
+
     // --- LEVEL 3: DISCOVERY ---
     struct Service {
         string name;
@@ -74,6 +76,7 @@ contract AgentProtocol is ERC721URIStorage, Ownable {
         uint256 tokenId = _nextTokenId++;
         _safeMint(creator, tokenId);
         _setTokenURI(tokenId, metadataURI);
+        emit AgentRegistered(tokenId, creator, metadataURI);
         return tokenId;
     }
 

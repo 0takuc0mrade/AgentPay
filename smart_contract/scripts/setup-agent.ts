@@ -3,8 +3,8 @@ import { isAddress, encodeAbiParameters } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
 // Edit these constants or set via env before running
-const CONTRACT_ADDRESS = "0x433a4773b0e5800a4a6ab7ddd0e071db9c75475b";
-const AGENT_WORKER_ADDRESS = privateKeyToAccount(generatePrivateKey()).address;
+const CONTRACT_ADDRESS = "0x49846bac01d20c2b8a0e5647b48974fbf990a103";
+const AGENT_WORKER_ADDRESS = "0xc25d9ac0e2030c0f011494608126ebc5fa07dd1a";
 
 const { viem, networkName } = await network.connect();
 const client = await viem.getPublicClient();
@@ -58,24 +58,37 @@ try {
   console.log("Waiting for registerAgent tx to confirm...");
   const receipt = await client.waitForTransactionReceipt({ hash: txReg, confirmations: 1 });
 
-  // Extract agentId from Transfer event (ERC721 Transfer from 0x0 = mint)
+  // Extract agentId from Transfer event (ERC721 mint)
   if (receipt && receipt.logs && receipt.logs.length > 0) {
-    // Look for Transfer event (ERC721 emits Transfer on mint)
-    // The event should have tokenId as the third indexed parameter
-    const transferLog = receipt.logs.find(log => {
+    for (let i = 0; i < receipt.logs.length; i++) {
+      const log = receipt.logs[i];
       // Transfer event signature: 0xddf252ad1be2c89b69c2b068fc378daf8d499b1a6db0a9f3c3de45e3a04e40f
-      return log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daf8d499b1a6db0a9f3c3de45e3a04e40f";
-    });
-
-    if (transferLog && transferLog.topics[3]) {
-      // topics[3] is the tokenId (third indexed param after from and to)
-      agentId = BigInt(transferLog.topics[3]);
-      console.log(`✅ Agent registered! ID extracted from event: ${agentId}`);
+      if (log.topics[0] === "0xddf252ad1be2c89b69c2b068fc378daf8d499b1a6db0a9f3c3de45e3a04e40f") {
+        if (log.topics[3]) {
+          agentId = BigInt(log.topics[3]);
+          console.log(`✅ Agent registered! ID extracted from Transfer event: ${agentId}`);
+          break;
+        }
+      }
     }
   }
 
+  // Fallback: if still 0, try querying balanceOf
   if (agentId === 0n) {
-    console.warn("⚠ Could not extract agentId from event logs. Assuming agentId = 0");
+    console.warn("⚠ Could not extract from Transfer event, checking balanceOf...");
+    try {
+      const balance = await agentProtocol.read.balanceOf([deployerClient.account.address]);
+      if (balance > 0n) {
+        agentId = balance - 1n;
+        console.log(`✅ Using agentId: ${agentId} (based on owner's balance)`);
+      } else {
+        console.warn("⚠ Could not determine agentId. Using agentId = 0");
+        agentId = 0n;
+      }
+    } catch (e) {
+      console.warn("⚠ Could not query balanceOf. Using agentId = 0");
+      agentId = 0n;
+    }
   }
 } catch (error) {
   console.error("❌ Error during registerAgent:", error instanceof Error ? error.message : error);

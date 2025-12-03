@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { encodeAbiParameters, keccak256, toBytes } from "viem";
 
-// Use ethers helpers from Hardhat runtime via any-cast when needed
 
 describe("AgentProtocol", async function () {
   const { viem } = await network.connect();

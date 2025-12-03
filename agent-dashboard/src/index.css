@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 4%;
+    --foreground: 120 100% 50%;
+
+    --card: 222 47% 6%;
+    --card-foreground: 120 100% 50%;
+
+    --popover: 222 47% 6%;
+    --popover-foreground: 120 100% 50%;
+
+    --primary: 120 100% 50%;
+    --primary-foreground: 222 47% 4%;
+
+    --secondary: 200 100% 50%;
+    --secondary-foreground: 222 47% 4%;
+
+    --muted: 222 30% 15%;
+    --muted-foreground: 120 40% 60%;
+
+    --accent: 30 100% 50%;
+    --accent-foreground: 222 47% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 120 100% 50%;
+    --input: 222 30% 12%;
+    --ring: 120 100% 50%;
+
+    --radius: 0px;
+
+    /* Custom cyberpunk tokens */
+    --terminal-green: 120 100% 50%;
+    --holographic-blue: 200 100% 60%;
+    --alert-orange: 30 100% 50%;
+    --void-black: 222 47% 4%;
+    --grid-color: 120 100% 50%;
+    
+    /* Glow effects */
+    --glow-green: 0 0 20px hsl(120 100% 50% / 0.5), 0 0 40px hsl(120 100% 50% / 0.3);
+    --glow-blue: 0 0 20px hsl(200 100% 60% / 0.5), 0 0 40px hsl(200 100% 60% / 0.3);
+    --glow-orange: 0 0 20px hsl(30 100% 50% / 0.5), 0 0 40px hsl(30 100% 50% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border/30;
+  }
+
+  body {
+    @apply bg-background text-foreground font-mono antialiased;
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  /* Grid background */
+  .bg-grid {
+    background-image: 
+      linear-gradient(hsl(var(--grid-color) / 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--grid-color) / 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* Glitch animation */
+  @keyframes glitch {
+    0%, 90%, 100% {
+      transform: translate(0);
+      text-shadow: 
+        -2px 0 hsl(var(--holographic-blue)),
+        2px 0 hsl(var(--alert-orange));
+    }
+    92% {
+      transform: translate(-2px, 1px);
+      text-shadow: 
+        2px 0 hsl(var(--holographic-blue)),
+        -2px 0 hsl(var(--alert-orange));
+    }
+    94% {
+      transform: translate(2px, -1px);
+      text-shadow: 
+        -2px 0 hsl(var(--alert-orange)),
+        2px 0 hsl(var(--holographic-blue));
+    }
+    96% {
+      transform: translate(-1px, 2px);
+    }
+    98% {
+      transform: translate(1px, -2px);
+    }
+  }
+
+  .glitch {
+    animation: glitch 3s infinite;
+  }
+
+  /* Glow effects */
+  .glow-green {
+    box-shadow: var(--glow-green);
+  }
+
+  .glow-blue {
+    box-shadow: var(--glow-blue);
+  }
+
+  .glow-orange {
+    box-shadow: var(--glow-orange);
+  }
+
+  .text-glow-green {
+    text-shadow: 0 0 10px hsl(var(--terminal-green) / 0.8), 0 0 20px hsl(var(--terminal-green) / 0.5);
+  }
+
+  .text-glow-blue {
+    text-shadow: 0 0 10px hsl(var(--holographic-blue) / 0.8), 0 0 20px hsl(var(--holographic-blue) / 0.5);
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background: hsl(var(--void-black) / 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--terminal-green) / 0.2);
+  }
+
+  .glass-blue {
+    background: hsl(var(--void-black) / 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--holographic-blue) / 0.3);
+  }
+
+  /* Scanline effect */
+  .scanlines::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      hsl(var(--terminal-green) / 0.03) 2px,
+      hsl(var(--terminal-green) / 0.03) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* Pulse border */
+  @keyframes pulse-border {
+    0%, 100% {
+      border-color: hsl(var(--terminal-green) / 0.3);
+    }
+    50% {
+      border-color: hsl(var(--terminal-green) / 0.6);
+    }
+  }
+
+  .pulse-border {
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  /* Counter animation helper */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  /* Fade slide in for new feed items */
+  @keyframes fadeSlideIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+      background-color: hsl(var(--terminal-green) / 0.2);
+    }
+    50% {
+      background-color: hsl(var(--terminal-green) / 0.15);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      background-color: hsl(var(--terminal-green) / 0.05);
+    }
+  }
+
+  /* Blink animation for cursor */
+  @keyframes blink {
+    0%, 50% {
+      opacity: 1;
+    }
+    51%, 100% {
+      opacity: 0;
+    }
+  }
+}
