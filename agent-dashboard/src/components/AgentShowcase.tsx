@@ -1,14 +1,11 @@
 import AgentCard from "./AgentCard";
+import { AlertTriangle } from "lucide-react";
 
-const AgentShowcase = () => {
-  const sampleAgents = [
-    {
-      agentId: 1,
-    },    {
-      agentId: 1337,
-    },
-  ];
+interface AgentShowcaseProps {
+  agentIds: number[];
+}
 
+const AgentShowcase = ({ agentIds }: AgentShowcaseProps) => {
   return (
     <section className="container mx-auto px-6 py-20">
       <div className="mb-12 text-center">
@@ -24,11 +21,21 @@ const AgentShowcase = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
-        {sampleAgents.map((agent) => (
-          <AgentCard key={agent.agentId} agentId={agent.agentId} />
-        ))}
-      </div>
+      {agentIds.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+          {agentIds.map((id) => (
+            <AgentCard key={id} agentId={id} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-16 glass border border-destructive/30 max-w-lg mx-auto">
+           <div className="flex flex-col items-center gap-4">
+              <AlertTriangle className="w-12 h-12 text-destructive" />
+              <h3 className="text-2xl font-bold text-destructive tracking-wider">NO NODES FOUND</h3>
+              <p className="text-muted-foreground text-sm">The network returned no agents matching your query.</p>
+           </div>
+        </div>
+      )}
     </section>
   );
 };

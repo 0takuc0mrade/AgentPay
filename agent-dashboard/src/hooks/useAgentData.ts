@@ -1,4 +1,5 @@
 import { useReadContract } from 'wagmi';
+import { useMemo } from 'react';
 
 const CONTRACT_ADDRESS = '0x49846bac01d20c2b8a0e5647b48974fbf990a103';
 
@@ -90,14 +91,16 @@ export function useAgentData(agentId: number) {
 
   const txCount = txCountData ? Number(txCountData) : 0;
 
-  // TypeScript might treat servicesData as `readonly` or `any`, so we cast safely
-  const services: Service[] = Array.isArray(servicesData)
-    ? (servicesData as any[]).map((s) => ({
-        name: s.name,
-        price: s.price.toString(),
-        active: s.active,
-      }))
-    : [];
+  // Memoize the services array to prevent re-renders if the data is the same.
+  const services: Service[] = useMemo(() => {
+    return Array.isArray(servicesData)
+      ? (servicesData as any[]).map((s) => ({
+          name: s.name,
+          price: s.price.toString(),
+          active: s.active,
+        }))
+      : [];
+  }, [servicesData]);
 
   const tokenUri = typeof uriData === 'string' ? uriData : null;
   const workerAddress = typeof workerData === 'string' ? workerData : '0x00...';

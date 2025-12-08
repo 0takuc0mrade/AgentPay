@@ -5,6 +5,9 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
 
+    "declaration": true,
+    "declarationMap": true,
+
     // Interop settings
     "esModuleInterop": true,
     "resolveJsonModule": true,

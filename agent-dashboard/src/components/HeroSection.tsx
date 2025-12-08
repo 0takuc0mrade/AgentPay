@@ -1,9 +1,25 @@
-import { Search, ArrowRight } from "lucide-react";
+import { Search, ArrowRight, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { semanticSearch, AgentServiceNode } from "@/utils/ai-search";
 
-const HeroSection = () => {
+interface HeroSectionProps {
+  allAgents: AgentServiceNode[];
+  onSearchResults: (ids: number[]) => void;
+}
+
+const HeroSection = ({ allAgents, onSearchResults }: HeroSectionProps) => {
   const [searchValue, setSearchValue] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchValue || isSearching) return;
+
+    setIsSearching(true);
+    const matchedIds = await semanticSearch(searchValue, allAgents);
+    onSearchResults(matchedIds);
+    setIsSearching(false);
+  };
 
   return (
     <section className="min-h-screen flex flex-col items-center justify-center px-6 pt-20 relative">
@@ -44,13 +60,23 @@ const HeroSection = () => {
               onChange={(e) => setSearchValue(e.target.value)}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
-              placeholder="ENTER AGENT ID or TX HASH..."
-              className="flex-1 bg-transparent px-6 py-4 text-primary placeholder:text-muted-foreground/50 focus:outline-none text-lg tracking-wide"
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder={isSearching ? "ANALYZING NETWORK INTENT..." : "Search for services like 'weather data' or 'price oracles'..."}
+              disabled={isSearching}
+              className="flex-1 bg-transparent px-6 py-4 text-primary placeholder:text-muted-foreground/50 focus:outline-none text-lg tracking-wide disabled:opacity-75"
             />
-            <button className="px-6 py-4 bg-primary/10 border-l border-primary/20 hover:bg-primary/20 transition-colors group">
+            <button
+              onClick={handleSearch}
+              disabled={isSearching}
+              className="px-6 py-4 bg-primary/10 border-l border-primary/20 hover:bg-primary/20 transition-colors group disabled:opacity-75 disabled:cursor-not-allowed"
+            >
               <div className="flex items-center gap-2 text-primary">
                 <span className="text-sm font-medium">SCAN</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                )}
               </div>
             </button>
           </div>
