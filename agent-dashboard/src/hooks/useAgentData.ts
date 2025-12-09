@@ -106,7 +106,7 @@ export function useAgentData(agentId: number) {
   const workerAddress = typeof workerData === 'string' ? workerData : '0x00...';
 
   // Mocked Metrics (Calculated off-chain for UI display)
-  const reputationScore = Math.min(txCount * 10 + 50, 100); // Start at 50, grow to 100
+  const reputationScore = Math.min(txCount * 10 + 0, 100); // Start at 50, grow to 100
   const status = txCount > 0 ? 'verified' : 'new';
 
   return {
