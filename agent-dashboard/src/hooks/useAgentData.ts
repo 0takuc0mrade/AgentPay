@@ -1,7 +1,7 @@
 import { useReadContract } from 'wagmi';
 import { useMemo } from 'react';
 
-const CONTRACT_ADDRESS = '0x49846bac01d20c2b8a0e5647b48974fbf990a103';
+const CONTRACT_ADDRESS = '0x02ceef104d340afc0d7caf6590f4bbc981bf3377';
 
 // 1. THE EXACT ABI FROM YOUR JSON FILE
 const ABI = [

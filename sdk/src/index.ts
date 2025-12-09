@@ -1,13 +1,14 @@
 import { ethers, Contract, Wallet, JsonRpcProvider, BaseContract } from "ethers";
 
-// Users can import { ethers } from "@agentpay/sdk" directly
+// --- RE-EXPORT ETHERS ---
+// This allows users to import { ethers } from "@agentpay/sdk" directly
 export { ethers } from "ethers";
 
 // --- CONFIGURATION ---
 const USDC_CONFIG = {
     name: "USD Coin",
     version: "2",
-    chainId: 43113, // Avalanche Fuji
+    chainId: 43113,
     verifyingContract: "0x5425890298aed601595a70ab815c96711a31bc65"
 };
 
@@ -55,6 +56,7 @@ export class AgentPaySDK {
     }
 
     // --- HELPER: ZERO-CONFIG SIGNER ---
+    // Allows passing a raw private key string OR a pre-made Signer
     private static getSigner(
         signerOrKey: ethers.Signer | string,
         rpcUrl: string = "https://api.avax-test.network/ext/bc/C/rpc"
@@ -67,7 +69,7 @@ export class AgentPaySDK {
     }
 
     // ==========================================================
-    // CREATOR TOOLS (Register & Sell)
+    // CREATOR TOOLS (With Automatic Fee Approval)
     // ==========================================================
 
     static async registerAgent(
@@ -77,13 +79,42 @@ export class AgentPaySDK {
         rpcUrl?: string
     ) {
         const signer = AgentPaySDK.getSigner(signerOrKey, rpcUrl);
-        const contract = new Contract(contractAddress, AGENT_PROTOCOL_ABI, signer) as unknown as AgentPayContract;
+        const FULL_ABI = [
+            ...AGENT_PROTOCOL_ABI,
+            "function registrationFee() view returns (uint256)",
+            "function usdcToken() view returns (address)"
+        ];
+        const ERC20_ABI = ["function approve(address spender, uint256 amount) public returns (bool)"];
 
-        console.log("📝 Registering Agent Identity...");
+        const contract = new Contract(contractAddress, FULL_ABI, signer);
+
+        console.log("📝 Preparing Registration...");
+
+        try {
+            const fee = await contract.registrationFee();
+
+            if (fee > 0n) {
+                console.log(`💰 Fee required: ${ethers.formatUnits(fee, 6)} USDC`);
+
+                // Get USDC Address from contract
+                const usdcAddress = await contract.usdcToken();
+                const usdc = new Contract(usdcAddress, ERC20_ABI, signer);
+
+                console.log("🔓 Approving USDC...");
+                const approveTx = await usdc.approve(contractAddress, fee);
+                await approveTx.wait();
+                console.log("✅ Approved!");
+            }
+        } catch (e) {
+            console.warn("⚠️ Could not read fee (Contract might be old version). Skipping approval.");
+        }
+
+        // 2. Register
+        console.log("📝 Minting Identity...");
         const creatorAddr = await signer.getAddress();
         const tx = await contract.registerAgent(creatorAddr, metadataURI);
 
-        console.log(`✅ Tx Sent: ${tx.hash}`);
+        console.log(`✅ Agent Registered! Tx: ${tx.hash}`);
         return await tx.wait();
     }
 
@@ -101,7 +132,7 @@ export class AgentPaySDK {
         console.log(`📦 Adding Service: ${serviceName}...`);
         const tx = await contract.addService(agentId, serviceName, BigInt(priceInWei));
 
-        console.log(`✅ Tx Sent: ${tx.hash}`);
+        console.log(`✅ Service Added! Tx: ${tx.hash}`);
         return await tx.wait();
     }
 
