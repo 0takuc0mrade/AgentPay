@@ -31,7 +31,7 @@ contract AgentProtocol is ERC721URIStorage, Ownable {
     address public immutable usdcToken;
 
     // --- REVENUE CONFIGURATION ---
-    uint256 public registrationFee = 5 * 10**6;
+    uint256 public registrationFee = 1 * 10**6;
     address public treasury;
 
     mapping(uint256 => address) public agentWorkers;

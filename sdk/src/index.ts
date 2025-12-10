@@ -1,15 +1,25 @@
 import { ethers, Contract, Wallet, JsonRpcProvider, BaseContract } from "ethers";
 
 // --- RE-EXPORT ETHERS ---
-// This allows users to import { ethers } from "@agentpay/sdk" directly
 export { ethers } from "ethers";
+
+// --- OFFICIAL DEPLOYMENTS ---
+export const AGENTPAY_NETWORKS = {
+    FUJI: {
+        chainId: 43113,
+        contract: "0x63e914bfb9d50f7ff0064454c88693e65d9df5f2", // <--- YOUR DEPLOYED ADDRESS
+        usdc: "0x5425890298aed601595a70ab815c96711a31bc65",
+        rpc: "https://api.avax-test.network/ext/bc/C/rpc"
+    }
+    // Add MAINNET later
+};
 
 // --- CONFIGURATION ---
 const USDC_CONFIG = {
     name: "USD Coin",
     version: "2",
     chainId: 43113,
-    verifyingContract: "0x5425890298aed601595a70ab815c96711a31bc65"
+    verifyingContract: AGENTPAY_NETWORKS.FUJI.usdc // Use constant
 };
 
 const EIP3009_TYPES = {
@@ -23,20 +33,33 @@ const EIP3009_TYPES = {
     ],
 };
 
-// Expanded ABI to include Creator Tools
 const AGENT_PROTOCOL_ABI = [
+    // Commerce
     "function settleAndLog((address payer, uint256 amount, bytes32 paymentNonce, uint256 validAfter, uint256 validBefore, uint8 v, bytes32 r, bytes32 s) payData, uint256 agentId, uint8 score, bytes repSignature, bytes32 tag2, string fileuri) public",
+    // Management
     "function registerAgent(address creator, string memory metadataURI) public returns (uint256)",
-    "function addService(uint256 agentId, string memory name, uint256 price) public"
+    "function addService(uint256 agentId, string memory name, uint256 price) public",
+    "function setWorkerAddress(uint256 agentId, address worker) public",
+    "function setAgentURI(uint256 tokenId, string memory newURI) public",
+    // Revenue Views
+    "function registrationFee() view returns (uint256)",
+    "function usdcToken() view returns (address)"
 ];
 
-// --- INTERFACES ---
+const ERC20_ABI = [
+    "function approve(address spender, uint256 amount) public returns (bool)"
+];
+
 interface AgentPayContract extends BaseContract {
     settleAndLog: (
         payData: any, agentId: number, score: number, repSignature: string, tag2: string, fileuri: string
     ) => Promise<ethers.ContractTransactionResponse>;
     registerAgent: (creator: string, metadataURI: string) => Promise<ethers.ContractTransactionResponse>;
     addService: (agentId: number, name: string, price: bigint) => Promise<ethers.ContractTransactionResponse>;
+    setWorkerAddress: (agentId: number, worker: string) => Promise<ethers.ContractTransactionResponse>;
+    setAgentURI: (tokenId: number, newURI: string) => Promise<ethers.ContractTransactionResponse>;
+    registrationFee: () => Promise<bigint>;
+    usdcToken: () => Promise<string>;
 }
 
 export class AgentPaySDK {
@@ -46,8 +69,8 @@ export class AgentPaySDK {
 
     constructor(
         facilitatorPrivateKey: string,
-        contractAddress: string,
-        rpcUrl: string = "https://api.avax-test.network/ext/bc/C/rpc"
+        contractAddress: string = AGENTPAY_NETWORKS.FUJI.contract,
+        rpcUrl: string = AGENTPAY_NETWORKS.FUJI.rpc
     ) {
         this.provider = new JsonRpcProvider(rpcUrl);
         this.facilitatorWallet = new Wallet(facilitatorPrivateKey, this.provider);
@@ -55,11 +78,9 @@ export class AgentPaySDK {
         this.contract = new Contract(contractAddress, AGENT_PROTOCOL_ABI, this.facilitatorWallet) as unknown as AgentPayContract;
     }
 
-    // --- HELPER: ZERO-CONFIG SIGNER ---
-    // Allows passing a raw private key string OR a pre-made Signer
     private static getSigner(
         signerOrKey: ethers.Signer | string,
-        rpcUrl: string = "https://api.avax-test.network/ext/bc/C/rpc"
+        rpcUrl: string
     ): ethers.Signer {
         if (typeof signerOrKey === 'string') {
             const provider = new JsonRpcProvider(rpcUrl);
@@ -69,48 +90,33 @@ export class AgentPaySDK {
     }
 
     // ==========================================================
-    // CREATOR TOOLS (With Automatic Fee Approval)
+    // CREATOR TOOLS (With Defaults)
     // ==========================================================
 
     static async registerAgent(
         signerOrKey: ethers.Signer | string,
-        contractAddress: string,
         metadataURI: string,
-        rpcUrl?: string
+        contractAddress: string = AGENTPAY_NETWORKS.FUJI.contract,
+        rpcUrl: string = AGENTPAY_NETWORKS.FUJI.rpc
     ) {
         const signer = AgentPaySDK.getSigner(signerOrKey, rpcUrl);
-        const FULL_ABI = [
-            ...AGENT_PROTOCOL_ABI,
-            "function registrationFee() view returns (uint256)",
-            "function usdcToken() view returns (address)"
-        ];
-        const ERC20_ABI = ["function approve(address spender, uint256 amount) public returns (bool)"];
+        const contract = new Contract(contractAddress, AGENT_PROTOCOL_ABI, signer) as unknown as AgentPayContract;
 
-        const contract = new Contract(contractAddress, FULL_ABI, signer);
-
-        console.log("📝 Preparing Registration...");
-
+        console.log("📝 Checking Registration Fee...");
         try {
             const fee = await contract.registrationFee();
-
             if (fee > 0n) {
-                console.log(`💰 Fee required: ${ethers.formatUnits(fee, 6)} USDC`);
-
-                // Get USDC Address from contract
-                const usdcAddress = await contract.usdcToken();
-                const usdc = new Contract(usdcAddress, ERC20_ABI, signer);
-
-                console.log("🔓 Approving USDC...");
+                console.log(`💰 Fee required: ${ethers.formatUnits(fee, 6)} USDC. Approving...`);
+                const usdc = new Contract(AGENTPAY_NETWORKS.FUJI.usdc, ERC20_ABI, signer);
                 const approveTx = await usdc.approve(contractAddress, fee);
                 await approveTx.wait();
-                console.log("✅ Approved!");
+                console.log("✅ USDC Approved.");
             }
         } catch (e) {
-            console.warn("⚠️ Could not read fee (Contract might be old version). Skipping approval.");
+            console.warn("⚠️ Could not read fee. Skipping approval.");
         }
 
-        // 2. Register
-        console.log("📝 Minting Identity...");
+        console.log("📝 Registering Agent Identity...");
         const creatorAddr = await signer.getAddress();
         const tx = await contract.registerAgent(creatorAddr, metadataURI);
 
@@ -118,13 +124,30 @@ export class AgentPaySDK {
         return await tx.wait();
     }
 
+    static async setWorkerAddress(
+        signerOrKey: ethers.Signer | string,
+        agentId: number,
+        workerAddress: string,
+        contractAddress: string = AGENTPAY_NETWORKS.FUJI.contract,
+        rpcUrl: string = AGENTPAY_NETWORKS.FUJI.rpc
+    ) {
+        const signer = AgentPaySDK.getSigner(signerOrKey, rpcUrl);
+        const contract = new Contract(contractAddress, AGENT_PROTOCOL_ABI, signer) as unknown as AgentPayContract;
+
+        console.log(`🔗 Linking Worker ${workerAddress} to Agent #${agentId}...`);
+        const tx = await contract.setWorkerAddress(agentId, workerAddress);
+
+        console.log(`✅ Worker Linked! Tx: ${tx.hash}`);
+        return await tx.wait();
+    }
+
     static async addService(
         signerOrKey: ethers.Signer | string,
-        contractAddress: string,
         agentId: number,
         serviceName: string,
         priceInWei: string,
-        rpcUrl?: string
+        contractAddress: string = AGENTPAY_NETWORKS.FUJI.contract,
+        rpcUrl: string = AGENTPAY_NETWORKS.FUJI.rpc
     ) {
         const signer = AgentPaySDK.getSigner(signerOrKey, rpcUrl);
         const contract = new Contract(contractAddress, AGENT_PROTOCOL_ABI, signer) as unknown as AgentPayContract;
@@ -136,13 +159,30 @@ export class AgentPaySDK {
         return await tx.wait();
     }
 
+    static async updateAgentProfile(
+        signerOrKey: ethers.Signer | string,
+        agentId: number,
+        newMetadataURI: string,
+        contractAddress: string = AGENTPAY_NETWORKS.FUJI.contract,
+        rpcUrl: string = AGENTPAY_NETWORKS.FUJI.rpc
+    ) {
+        const signer = AgentPaySDK.getSigner(signerOrKey, rpcUrl);
+        const contract = new Contract(contractAddress, AGENT_PROTOCOL_ABI, signer) as unknown as AgentPayContract;
+
+        console.log(`🔄 Updating Metadata for Agent #${agentId}...`);
+        const tx = await contract.setAgentURI(agentId, newMetadataURI);
+
+        console.log(`✅ Profile Updated! Tx: ${tx.hash}`);
+        return await tx.wait();
+    }
+
     // ==========================================================
     // CLIENT SIDE: Generates the Payment Header
     // ==========================================================
     static async generatePaymentHeader(
         userPrivateKey: string,
         agentPrivateKey: string,
-        contractAddress: string,
+        contractAddress: string = AGENTPAY_NETWORKS.FUJI.contract,
         agentId: number,
         amount: string,
         serviceCategory: string = "general"
@@ -154,10 +194,10 @@ export class AgentPaySDK {
         const validAfter = 0;
         const validBefore = Math.floor(Date.now() / 1000) + 3600;
 
-        // EIP-3009 Authorization
+        // DIRECT PAYMENT MODEL (No Protocol Fee)
         const paymentValue = {
             from: userWallet.address,
-            to: agentWallet.address, // Direct transfer (No Fee Model)
+            to: agentWallet.address,
             value: amount,
             validAfter,
             validBefore,
