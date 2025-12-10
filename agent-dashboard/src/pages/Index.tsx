@@ -8,7 +8,7 @@ import { AgentServiceNode } from "@/utils/ai-search";
 import AgentDataLoader from "@/components/AgentDataLoader";
 
 // In a real app, this would come from a registry contract or an API
-const ALL_AGENT_IDS = [1, 42, 1337];
+const ALL_AGENT_IDS = [0, 42, 1337];
 
 const Index = () => {
   const [allAgentServices, setAllAgentServices] = useState<AgentServiceNode[]>([]);
