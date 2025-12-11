@@ -9,7 +9,7 @@ dotenv.config();
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY!;
 const ATLAS_PRIVATE_KEY = process.env.ATLAS_PRIVATE_KEY!;
 const WORKER_KEY = process.env.WORKER_KEY!; // Agent 1's Key (Seller)
-const CONTRACT_ADDRESS = "0x49846bac01d20c2b8a0e5647b48974fbf990a103";
+const CONTRACT_ADDRESS = "0x63e914bfb9d50f7ff0064454c88693e65d9df5f2";
 
 // The "Vending Machine" URL (Your test-server.ts)
 const SERVICE_ENDPOINT = "http://localhost:3000/weather";
@@ -73,7 +73,7 @@ INSTRUCTIONS:
 1. Analyze user request.
 2. Match it to a service in the list.
 3. Output JSON ONLY:
-   { "action": "PAY", "agentId": 1, "amount": "0.1", "serviceName": "Weather Data" }
+   { "action": "PAY", "agentId": 0, "amount": "0.1", "serviceName": "Weather Data" }
 `;
 }
 
