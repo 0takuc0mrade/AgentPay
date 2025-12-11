@@ -107,7 +107,7 @@ export function useAgentData(agentId: number) {
 
   // Mocked Metrics (Calculated off-chain for UI display)
   const reputationScore = Math.min(txCount * 5 + 0, 100); // Start at 50, grow to 100
-  const status = txCount > 0 ? 'verified' : 'new';
+  const status = txCount > 10 ? 'verified' : 'new';
 
   return {
     txCount,
